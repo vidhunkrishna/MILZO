@@ -1,58 +1,61 @@
- HEAD
-# MILZO – Milk Delivery Management System
+# 🥛 MILZO – Milk Delivery Management System
 
-MILZO is a modern, enterprise-grade Milk Delivery Management System designed for distributors and dairy businesses. It offers a production-ready, full-stack Admin Console with a complete React/Vite client frontend and a robust Node.js/Express/MongoDB backend server.
+MILZO is a modern, enterprise-grade Milk Delivery Management System designed for distributors and dairy businesses. It offers a production-ready, full-stack Admin Console with a complete React/Vite client frontend and a robust Node.js/Express backend integrated with **Supabase (PostgreSQL)**.
 
-
+---
 
 ## 🚀 Key Features
 
-- **RBAC Security:** Role-Based Access Control protecting routes and endpoints (SuperAdmin, Admin, Dispatch Manager, Customer Service).
+- **RBAC Security:** Role-Based Access Control protecting routes and endpoints (SuperAdmin, OperationsManager, FinanceManager, DeliveryManager, CustomerSupport).
 - **Core Operations:** Comprehensive CRUD modules for Customers, Vendors, Products, Orders, and Routes.
 - **Advanced Subscription Engine:** Manage recurring daily, alternate, or weekly plans. Pause/resume/cancel dispatches with automatic wallet calculations.
-- **Logistics & Dispatch:** Track vehicle logs, schedule delivery agents, assign routes, and mark roster attendance.
+- **Logistics & Dispatch:** Track vehicle logs, schedule delivery agents, assign routes, and manage shifts.
 - **Instant Gateways:** Integration endpoints ready for Razorpay/Stripe recharges.
-- **Interactive Dashboards:** Visualized sales performance, revenue trends, and delivery stop KPIs via Recharts.
+- **Interactive Dashboards:** Visualized sales performance, revenue trends, and delivery stop KPIs via Recharts, powered by optimized Supabase RPC (Remote Procedure Call) database functions.
 - **System Logs:** Dedicated interfaces to audit system activities and resolve backend runtime exceptions.
 - **Notification Center:** Real-time reminders on low inventory levels, customer tickets, and dispatch status alerts.
 
-
+---
 
 ## 🛠️ Technology Stack
 
 | Layer | Technologies |
 | --- | --- |
-| **Frontend** | React.js (v18), Vite, Tailwind CSS, Redux Toolkit, React Query, Recharts, Lucide Icons, React Hot Toast |
-| **Backend** | Node.js, Express.js, MongoDB (Mongoose ODM) |
-| **Security** | JWT (Session & Refresh tokens), bcryptjs, Helmet, Express Rate Limit, Mongo Sanitize |
-| **Integrations** | Cloudinary (Doc uploads), Razorpay (Payments mock endpoints), Nodemailer (SMTP dispatch) |
+| **Frontend** | React.js (v18), Vite, Tailwind CSS, Redux Toolkit, TanStack React Query, Recharts, Lucide Icons, Framer Motion, React Hot Toast |
+| **Backend** | Node.js, Express.js |
+| **Database** | **Supabase (PostgreSQL)** with custom PL/pgSQL functions and schema |
+| **Security** | JWT (Session & Refresh tokens), bcryptjs, Helmet, Express Rate Limit |
+| **Integrations** | Cloudinary (Doc/avatar uploads), Razorpay (Payments mock endpoints), Nodemailer (SMTP dispatch) |
 | **Logging** | Winston Logger (Error / Info logs) |
 
-
+---
 
 ## 📂 Project Structure
 
 ```text
 milzo/
 ├── backend/
-│   ├── config/          # DB, Cloudinary, Razorpay settings
-│   ├── controllers/     # Route controller endpoints logic
-│   ├── middleware/      # Auth security, RBAC checks, rate limiters
-│   ├── models/          # 16 Mongoose DB schemas
-│   ├── routes/          # API endpoint router maps
-│   ├── utils/           # Winston logger, Nodemailer wrappers, responses
-│   └── server.js        # Express application entry point
+│   ├── config/              # Supabase, Cloudinary, Razorpay settings
+│   ├── controllers/         # Route controller endpoints logic
+│   ├── middleware/          # Auth security, RBAC checks, rate limiters
+│   ├── models/              # Compat-layer querying Supabase tables
+│   ├── routes/              # API endpoint router maps
+│   ├── utils/               # Winston logger, Nodemailer wrappers, responses
+│   ├── supabase_schema.sql  # Database schema definition
+│   ├── supabase_functions.sql # RPC functions for dashboard/analytics
+│   ├── generate_seed_sql.js # Script to generate Super Admin SQL seed
+│   └── server.js            # Express application entry point
 │
 └── frontend/
-    ├── public/          # Favicon, assets
+    ├── public/              # Favicon, assets
     ├── src/
-    │   ├── components/  # Shared layouts (DataTable, Modal, ThemeToggle)
-    │   ├── layouts/     # Route wrappers (AdminLayout, AuthLayout)
-    │   ├── pages/       # 19 Admin UI Page views
-    │   ├── redux/       # Store configurations and slice reducers
-    │   ├── services/    # Axios instance with 401 interceptors
-    │   ├── index.css    # Global Tailwind styling & animations
-    │   └── main.jsx     # Vite client bootstrap
+    │   ├── components/      # Shared layouts (DataTable, Modal, ThemeToggle)
+    │   ├── layouts/         # Route wrappers (AdminLayout, AuthLayout)
+    │   ├── pages/           # 19 Admin UI Page views
+    │   ├── redux/           # Store configurations and slice reducers
+    │   ├── services/        # Axios instance with 401 interceptors
+    │   ├── index.css        # Global Tailwind styling & animations
+    │   └── main.jsx         # Vite client bootstrap
 ```
 
 ---
@@ -60,48 +63,79 @@ milzo/
 ## ⚡ Quick Start
 
 ### 1. Prerequisites
-Ensure you have [Node.js](https://nodejs.org/) (v16+) and [MongoDB](https://www.mongodb.com/) running locally.
-
-### 2. Backend Installation & Run
-1. Go to backend directory:
-   ```bash
-   cd backend
-   ```
-2. Install server packages:
-   ```bash
-   npm install
-   ```
-3. Copy environment variables file:
-   ```bash
-   cp .env.example .env
-   ```
-4. Fill variables inside `.env` (MongoDB connection string, JWT secret, Cloudinary config).
-5. Start the server (runs on port `5000` by default):
-   ```bash
-   npm run dev
-   ```
-
-### 3. Frontend Installation & Run
-1. Go to frontend directory:
-   ```bash
-   cd ../frontend
-   ```
-2. Install client packages:
-   ```bash
-   npm install
-   ```
-3. Launch client dev server (starts on port `3000` with API proxying to `5000`):
-   ```bash
-   npm run dev
-   ```
+Ensure you have:
+- [Node.js](https://nodejs.org/) (v18+ recommended)
+- A [Supabase](https://supabase.com/) account and project set up.
 
 ---
 
-## 🛡️ Default Access
-Seed super admin user details to log in:
+### 2. Database Setup (Supabase)
+
+MILZO uses Supabase as its primary PostgreSQL database. Follow these steps to initialize it:
+
+1. **Run the Database Schema:**
+   - Go to your Supabase project dashboard.
+   - Open the **SQL Editor** from the left sidebar.
+   - Click **New query**, paste the contents of [backend/supabase_schema.sql](file:///c:/Users/valli/Downloads/MILZO%20proj/backend/supabase_schema.sql), and click **Run**.
+
+2. **Create the RPC Functions:**
+   - In the SQL Editor, create a new query.
+   - Paste the contents of [backend/supabase_functions.sql](file:///c:/Users/valli/Downloads/MILZO%20proj/backend/supabase_functions.sql) and click **Run**. (These functions are required for dashboard statistics and charts).
+
+3. **Seed the Super Admin:**
+   - Run the seed script generator locally in the backend folder to output the SQL insert command for the default admin user:
+     ```bash
+     cd backend
+     npm install
+     node generate_seed_sql.js
+     ```
+   - Copy the generated `INSERT INTO users` block from the console.
+   - Paste it into the Supabase SQL Editor and click **Run**. This creates the initial `Super Admin` user.
+
+---
+
+### 3. Backend Setup & Run
+
+1. **Configure Environment Variables:**
+   - In the `backend/` directory, copy the `.env.example` to `.env`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Open the `.env` file and fill in your Supabase connection credentials and other settings:
+     ```env
+     SUPABASE_URL=https://your-project-id.supabase.co
+     SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+     ```
+
+2. **Start the Express Server:**
+   - While in the `backend/` directory, start the server in development mode:
+     ```bash
+     npm run dev
+     ```
+   - The server runs on port `5000` by default.
+
+---
+
+### 4. Frontend Setup & Run
+
+1. **Go to the frontend directory:**
+   ```bash
+   cd ../frontend
+   ```
+2. **Install client packages:**
+   ```bash
+   npm install
+   ```
+3. **Launch client dev server:**
+   ```bash
+   npm run dev
+   ```
+   - The client will run on port `3000` with requests proxied to the backend server.
+
+---
+
+## 🛡️ Default Access Credentials
+
+After seeding the database, log in with the following default Super Admin credentials:
 - **Email:** `admin@milzo.com`
 - **Password:** `Admin@123456`
-
-# MILZO
-Smart Milk Delivery Management System for seamless subscription, delivery tracking, customer management, and payment automation.
- 47818de813246bf6fc44d6a685d9bcb574dfa164
