@@ -1,8 +1,9 @@
+ HEAD
 # MILZO – Milk Delivery Management System
 
 MILZO is a modern, enterprise-grade Milk Delivery Management System designed for distributors and dairy businesses. It offers a production-ready, full-stack Admin Console with a complete React/Vite client frontend and a robust Node.js/Express/MongoDB backend server.
 
----
+
 
 ## 🚀 Key Features
 
@@ -15,7 +16,7 @@ MILZO is a modern, enterprise-grade Milk Delivery Management System designed for
 - **System Logs:** Dedicated interfaces to audit system activities and resolve backend runtime exceptions.
 - **Notification Center:** Real-time reminders on low inventory levels, customer tickets, and dispatch status alerts.
 
----
+
 
 ## 🛠️ Technology Stack
 
@@ -27,7 +28,7 @@ MILZO is a modern, enterprise-grade Milk Delivery Management System designed for
 | **Integrations** | Cloudinary (Doc uploads), Razorpay (Payments mock endpoints), Nodemailer (SMTP dispatch) |
 | **Logging** | Winston Logger (Error / Info logs) |
 
----
+
 
 ## 📂 Project Structure
 
@@ -100,3 +101,7 @@ Ensure you have [Node.js](https://nodejs.org/) (v16+) and [MongoDB](https://www.
 Seed super admin user details to log in:
 - **Email:** `admin@milzo.com`
 - **Password:** `Admin@123456`
+
+# MILZO
+Smart Milk Delivery Management System for seamless subscription, delivery tracking, customer management, and payment automation.
+ 47818de813246bf6fc44d6a685d9bcb574dfa164
