@@ -101,10 +101,43 @@ MILZO uses Supabase as its primary PostgreSQL database. Follow these steps to in
      ```bash
      cp .env.example .env
      ```
-   - Open the `.env` file and fill in your Supabase connection credentials and other settings:
+   - Open the `.env` file and configure the required environment variables:
      ```env
+     # Server Configuration
+     NODE_ENV=development
+     PORT=5000
+     CLIENT_URL=http://localhost:3000
+
+     # Supabase (PostgreSQL Database)
      SUPABASE_URL=https://your-project-id.supabase.co
      SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+     # JWT Authentication
+     JWT_SECRET=your_super_secret_jwt_key_min_32_chars
+     JWT_EXPIRE=7d
+     JWT_REFRESH_SECRET=your_refresh_secret_key_min_32_chars
+     JWT_REFRESH_EXPIRE=30d
+
+     # Cloudinary Integration (Image Uploads)
+     CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+     CLOUDINARY_API_KEY=your_cloudinary_api_key
+     CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+     # Razorpay Gateway Integration (Test / Live Mode)
+     RAZORPAY_KEY_ID=your_razorpay_key_id
+     RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+
+     # Nodemailer SMTP Email settings
+     SMTP_HOST=smtp.gmail.com
+     SMTP_PORT=587
+     SMTP_USER=your-smtp-email@gmail.com
+     SMTP_PASS=your-smtp-app-password
+     FROM_EMAIL=no-reply@milzo.com
+     FROM_NAME="MILZO Support"
+
+     # Default Super Admin Seed Credentials
+     SUPER_ADMIN_EMAIL=admin@milzo.com
+     SUPER_ADMIN_PASSWORD=Admin@123456
      ```
 
 2. **Start the Express Server:**
