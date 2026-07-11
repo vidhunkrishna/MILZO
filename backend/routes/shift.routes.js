@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getShifts, getShift, createShift, updateShift, deleteShift, markAttendance, handleLeaveRequest } = require('../controllers/shift.controller');
+const { getShifts, getShift, createShift, updateShift, deleteShift, markAttendance, handleLeaveRequest, markMockAttendance } = require('../controllers/shift.controller');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
 
@@ -12,5 +12,6 @@ router.put('/:id', authorize('superAdmin', 'operationsManager', 'deliveryManager
 router.delete('/:id', authorize('superAdmin'), deleteShift);
 router.patch('/:id/attendance', authorize('superAdmin', 'operationsManager', 'deliveryManager'), markAttendance);
 router.patch('/:id/leave', authorize('superAdmin', 'operationsManager', 'deliveryManager'), handleLeaveRequest);
+router.post('/attendance/:id', authorize('superAdmin', 'operationsManager', 'deliveryManager'), markMockAttendance);
 
 module.exports = router;

@@ -7,14 +7,18 @@ const StatusBadge = ({ status }) => {
 
   let badgeClass = 'badge-neutral';
   
-  if (['active', 'completed', 'delivered', 'paid', 'verified', 'success', 'approved', 'yes'].includes(normalized)) {
+  if (['active', 'completed', 'delivered', 'paid', 'captured', 'verified', 'success', 'approved', 'yes', 'present', 'refunded'].includes(normalized)) {
     badgeClass = 'badge-success';
-  } else if (['pending', 'in progress', 'in_progress', 'unpaid', 'on hold', 'pending kyc', 'pending_kyc', 'processing'].includes(normalized)) {
+  } else if (['pending', 'in progress', 'in_progress', 'unpaid', 'on hold', 'pending kyc', 'pending_kyc', 'processing', 'refund pending', 'refund processing'].includes(normalized)) {
     badgeClass = 'badge-warning';
-  } else if (['inactive', 'cancelled', 'canceled', 'suspended', 'failed', 'rejected', 'blocked', 'no'].includes(normalized)) {
+  } else if (['inactive', 'cancelled', 'canceled', 'suspended', 'failed', 'rejected', 'blocked', 'no', 'absent'].includes(normalized)) {
     badgeClass = 'badge-danger';
-  } else if (['shipped', 'subscribed', 'scheduled', 'leave', 'assigned'].includes(normalized)) {
+  } else if (['shipped', 'subscribed', 'scheduled', 'leave', 'assigned', 'wallet', 'partially refunded', 'partially_refunded'].includes(normalized)) {
     badgeClass = 'badge-info';
+  } else if (['razorpay'].includes(normalized)) {
+    badgeClass = 'badge-purple';
+  } else if (['cod', 'cash on delivery'].includes(normalized)) {
+    badgeClass = 'badge-orange';
   }
 
   return (

@@ -38,6 +38,9 @@ const Customer = {
       quantity: body.preferences?.quantity || 1,
       notes: body.notes,
     };
+    if (body.id !== undefined) {
+      record.id = body.id;
+    }
     const { data, error } = await supabase.from(TABLE).insert(record).select().single();
     if (error) throw new Error(error.message);
     return addIdAlias(data);

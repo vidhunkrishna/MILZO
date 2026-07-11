@@ -14,8 +14,19 @@ const Feedback = {
     const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).is('deleted_at', null).single();
     if (error) return null;
     const { data: comments } = await supabase.from(COMMENTS_TABLE).select('*').eq('feedback_id', id).order('created_at', { ascending: true });
+    
+    // Fetch comment author details in parallel to avoid N+1 query patterns on the client
+    const commentsWithAuthors = await Promise.all((comments || []).map(async (c) => {
+      const { data: authorUser } = await supabase.from('users').select('name, role').eq('id', c.author).single();
+      return {
+        ...c,
+        author_name: authorUser?.name || 'Support Agent',
+        author_role: authorUser?.role || 'customerSupport',
+      };
+    }));
+
     const fb = addIdAlias(data);
-    fb.comments = addIdAliasArray(comments);
+    fb.comments = addIdAliasArray(commentsWithAuthors);
     return fb;
   },
 

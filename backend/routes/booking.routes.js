@@ -7,11 +7,11 @@ const { authorize } = require('../middleware/rbac');
 router.use(protect);
 router.get('/calendar', getBookingCalendar);
 router.get('/', getBookings);
-router.post('/', authorize('superAdmin', 'operationsManager', 'customerSupport'), createBooking);
+router.post('/', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), createBooking);
 router.get('/:id', getBooking);
-router.put('/:id', authorize('superAdmin', 'operationsManager', 'customerSupport'), updateBooking);
-router.delete('/:id', authorize('superAdmin'), deleteBooking);
-router.patch('/:id/cancel', authorize('superAdmin', 'operationsManager', 'customerSupport'), cancelBooking);
-router.post('/:id/convert', authorize('superAdmin', 'operationsManager'), convertToOrder);
+router.put('/:id', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), updateBooking);
+router.delete('/:id', authorize('superAdmin', 'customer'), deleteBooking);
+router.patch('/:id/cancel', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), cancelBooking);
+router.post('/:id/convert', authorize('superAdmin', 'operationsManager', 'customer'), convertToOrder);
 
 module.exports = router;

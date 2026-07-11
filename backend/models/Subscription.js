@@ -21,6 +21,7 @@ const Subscription = {
   },
 
   async create(body) {
+    console.log("Incoming body", body);
     const record = {
       customer: body.customer,
       product: body.product,
@@ -40,8 +41,17 @@ const Subscription = {
       delivery_days: body.deliveryDays || { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: false },
       zone: body.zone,
     };
+    console.log("Subscription record to insert", record);
     const { data, error } = await supabase.from(TABLE).insert(record).select().single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.log("Supabase insert error");
+      console.log("error", error);
+      console.log("error.message", error.message);
+      console.log("error.details", error.details);
+      console.log("error.hint", error.hint);
+      console.log("error.code", error.code);
+      throw new Error(error.message);
+    }
     return addIdAlias(data);
   },
 

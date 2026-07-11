@@ -6,10 +6,10 @@ import Logo from '../components/Logo';
 import { smoothSpring } from '../lib/animations';
 
 const AuthLayout = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={user?.role === 'customer' ? "/customer/dashboard" : "/dashboard"} replace />;
   }
 
   return (

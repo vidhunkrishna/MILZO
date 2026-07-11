@@ -6,7 +6,14 @@ const READS_TABLE = 'notification_reads';
 
 const addIdAlias = (row) => {
   if (!row) return null;
-  return { ...row, _id: row.id };
+  return { 
+    ...row, 
+    _id: row.id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    expiresAt: row.expires_at,
+    isGlobal: row.is_global,
+  };
 };
 const addIdAliasArray = (rows) => (rows || []).map(addIdAlias);
 

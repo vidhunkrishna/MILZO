@@ -22,6 +22,7 @@ const Orders = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   // Form State
   const [formCust, setFormCust] = useState('');
@@ -45,9 +46,9 @@ const Orders = () => {
 
   // Filter
   const filteredData = listData.filter(o =>
-    o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-    o.product.toLowerCase().includes(search.toLowerCase()) ||
-    o._id.includes(search)
+    (o.customerName || '').toLowerCase().includes(search.toLowerCase()) ||
+    (o.product || '').toLowerCase().includes(search.toLowerCase()) ||
+    (o._id || '').includes(search)
   );
 
   const openAddModal = () => {
@@ -67,7 +68,15 @@ const Orders = () => {
     setFormProduct(order.product);
     setFormQty(order.quantity);
     setFormRoute(order.route);
-    setFormStatus(order.status);
+    
+    // Map DB status to dropdown status option
+    const dbStatus = (order.status || '').toLowerCase();
+    const mappedStatus = dbStatus === 'placed' ? 'Pending' :
+                         ['confirmed', 'packed', 'assigned', 'out_for_delivery'].includes(dbStatus) ? 'In Progress' :
+                         dbStatus === 'delivered' ? 'Delivered' :
+                         dbStatus === 'cancelled' ? 'Cancelled' : 'Pending';
+    setFormStatus(mappedStatus);
+    
     setFormPayment(order.paymentStatus);
     setIsModalOpen(true);
   };
@@ -124,12 +133,32 @@ const Orders = () => {
     { label: 'Order ID', key: '_id', render: (row) => <span className="font-semibold">{row._id}</span> },
     { label: 'Customer', key: 'customerName' },
     { label: 'Route', key: 'route' },
-    { label: 'Product & Qty', key: 'product', render: (row) => (
-      <span>{row.product} <strong className="text-primary-500 font-bold">x{row.quantity}</strong></span>
-    )},
+    { label: 'Product & Qty', key: 'product', render: (row) => {
+      const itemsList = row.items && row.items.length > 0 
+        ? row.items 
+        : [{ product_name: row.product, quantity: row.quantity }];
+      return (
+        <div className="flex flex-col gap-1 text-xs">
+          {itemsList.map((item, idx) => (
+            <div key={idx} className="whitespace-nowrap">
+              {item.product_name} <strong className="text-primary-500 font-bold">×{item.quantity}</strong>
+            </div>
+          ))}
+        </div>
+      );
+    }},
     { label: 'Total Price', key: 'amount', render: (row) => <span className="font-bold">₹{row.amount}</span> },
     { label: 'Date', key: 'date' },
-    { label: 'Payment', key: 'paymentStatus', render: (row) => <StatusBadge status={row.paymentStatus} /> },
+    { 
+      label: 'Payment', 
+      key: 'payment', 
+      render: (row) => (
+        <div className="flex flex-col gap-1 items-start">
+          <StatusBadge status={row.payment?.method || 'Unknown'} />
+          <StatusBadge status={row.payment?.status || 'Unknown'} />
+        </div>
+      ) 
+    },
     { label: 'Status', key: 'status', render: (row) => <StatusBadge status={row.status} /> },
   ];
 
@@ -150,6 +179,10 @@ const Orders = () => {
         onCreateClick={openAddModal}
         createLabel="Add Order"
         actions={{
+          onView: (order) => {
+            setSelectedOrder(order);
+            setIsViewModalOpen(true);
+          },
           onEdit: openEditModal,
           onDelete: openCancelConfirm,
           deleteLabel: 'Cancel Order',
@@ -163,6 +196,17 @@ const Orders = () => {
         title={selectedOrder ? 'Modify Order Details' : 'Place Custom Order'}
       >
         <form onSubmit={handleSave} className="space-y-4">
+          {selectedOrder && selectedOrder.items && selectedOrder.items.length > 0 && (
+            <div className="p-3 bg-slate-50 dark:bg-dark-hover rounded-xl text-xs space-y-1.5 border border-slate-200/50 dark:border-dark-border/50">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ordered Products</span>
+              {selectedOrder.items.map((item, idx) => (
+                <div key={idx} className="flex justify-between font-semibold">
+                  <span className="text-slate-700 dark:text-slate-300">{item.product_name}</span>
+                  <span className="text-slate-500 font-bold">×{item.quantity}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div>
             <label className="input-label">Customer Name</label>
             <input
@@ -255,6 +299,137 @@ const Orders = () => {
         title="Cancel Delivery Order"
         message={`Are you sure you want to cancel milk order ${selectedOrder?._id} for ${selectedOrder?.customerName}? This will issue a refund if already paid.`}
       />
+
+      {/* View Order Details Modal */}
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Admin Order Details"
+      >
+        {selectedOrder && (
+          <div className="space-y-6 text-sm">
+            {/* Order Code & Status */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-dark-border pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Order ID</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">{selectedOrder._id || selectedOrder.id}</span>
+              </div>
+              <StatusBadge status={selectedOrder.status} />
+            </div>
+
+            {/* Customer & Route Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Customer</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedOrder.customerName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Route</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedOrder.route}</span>
+              </div>
+            </div>
+
+            {/* Ordered Items */}
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Items Purchased</span>
+              <div className="p-3 bg-slate-50 dark:bg-dark-hover rounded-xl border border-slate-200/50 dark:border-dark-border/50 space-y-2">
+                {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                  selectedOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-xs">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{item.product_name || item.product}</span>
+                      <span className="text-slate-500 font-bold">×{item.quantity}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedOrder.product}</span>
+                    <span className="text-slate-500 font-bold">×{selectedOrder.quantity}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Billing Summary */}
+            <div className="space-y-2 border-t border-slate-100 dark:border-dark-border pt-4">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Billing Summary</span>
+              <div className="space-y-1.5 text-xs text-slate-500">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{(selectedOrder.subtotal || selectedOrder.amount || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>GST (5%)</span>
+                  <span>₹{(selectedOrder.tax || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Delivery Fee</span>
+                  <span>₹{(selectedOrder.delivery_charge || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold text-slate-800 dark:text-slate-100 pt-2 border-t border-dashed border-slate-200 dark:border-dark-border/60">
+                  <span>Total Price</span>
+                  <span>₹{Number(selectedOrder.total || selectedOrder.amount || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Details */}
+            <div className="space-y-3 border-t border-slate-100 dark:border-dark-border pt-4">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Payment Details</span>
+              <div className="space-y-2 text-xs text-slate-500">
+                <div className="flex justify-between items-center">
+                  <span>Payment Method</span>
+                  <StatusBadge status={selectedOrder.payment?.method || 'Unknown'} />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Payment Status</span>
+                  <StatusBadge status={selectedOrder.payment?.status || 'Unknown'} />
+                </div>
+                <div className="flex justify-between">
+                  <span>Transaction ID</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedOrder.payment?.transactionId || 'N/A'}</span>
+                </div>
+                {selectedOrder.payment?.paidAt && (
+                  <div className="flex justify-between">
+                    <span>Payment Date</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {new Date(selectedOrder.payment.paidAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                    </span>
+                  </div>
+                )}
+                {selectedOrder.payment?.refund && (
+                  <div className="border-t border-dashed border-slate-200 dark:border-dark-border/40 pt-2 mt-2 space-y-1.5 text-xs text-rose-500">
+                    <div className="flex justify-between font-bold">
+                      <span>Refund Amount</span>
+                      <span>₹{(selectedOrder.payment.refund.amount || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Refund ID</span>
+                      <span className="font-mono font-semibold">{selectedOrder.payment.refund.refundId || 'N/A'}</span>
+                    </div>
+                    {selectedOrder.payment.refund.processedAt && (
+                      <div className="flex justify-between">
+                        <span>Refunded Date</span>
+                        <span>{new Date(selectedOrder.payment.refund.processedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-dark-border">
+              <button
+                type="button"
+                onClick={() => setIsViewModalOpen(false)}
+                className="btn-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

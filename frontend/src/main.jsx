@@ -7,6 +7,14 @@ import App from './App';
 import { store } from './redux/store';
 import './index.css';
 
+// Immediately sync theme from localStorage to document class list
+const savedTheme = localStorage.getItem('milzo_theme');
+if (savedTheme === 'dark') {
+  document.documentElement.classList.add('dark');
+} else {
+  document.documentElement.classList.remove('dark');
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

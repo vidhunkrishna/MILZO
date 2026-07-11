@@ -61,7 +61,13 @@ const paginate = async (table, filter = {}, options = {}) => {
   const totalPages = Math.ceil(total / limit);
 
   // Add _id alias for backward compatibility
-  const aliasedData = (data || []).map(row => ({ ...row, _id: row.id }));
+  const aliasedData = (data || []).map(row => {
+    const mapped = { ...row, _id: row.id };
+    if (table === 'payments' && mapped.method === 'wallet' && mapped.type === 'subscription_payment') {
+      mapped.type = 'wallet_recharge';
+    }
+    return mapped;
+  });
 
   return {
     data: aliasedData,

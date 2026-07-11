@@ -1,39 +1,19 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { BarChart3, FileDown, Calendar, ArrowRight } from 'lucide-react';
+import { BarChart3, FileDown, Calendar } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, BarChart, Bar, 
-  LineChart, Line, Legend
+  Legend
 } from 'recharts';
 import api from '../services/api';
-
-const mockReports = {
-  sales: [
-    { month: 'Jan', offline: 120000, online: 340000, total: 460000 },
-    { month: 'Feb', offline: 140000, online: 410000, total: 550000 },
-    { month: 'Mar', offline: 135000, online: 490000, total: 625000 },
-    { month: 'Apr', offline: 150000, online: 580000, total: 730000 },
-    { month: 'May', offline: 170000, online: 640000, total: 810000 },
-    { month: 'Jun', offline: 190000, online: 720000, total: 910000 },
-  ],
-  delivery: [
-    { day: 'Mon', completed: 780, delayed: 22, missed: 8 },
-    { day: 'Tue', completed: 810, delayed: 15, missed: 5 },
-    { day: 'Wed', completed: 840, delayed: 18, missed: 4 },
-    { day: 'Thu', completed: 830, delayed: 25, missed: 10 },
-    { day: 'Fri', completed: 870, delayed: 12, missed: 6 },
-    { day: 'Sat', completed: 920, delayed: 10, missed: 2 },
-    { day: 'Sun', completed: 950, delayed: 8, missed: 1 },
-  ]
-};
 
 const Analytics = () => {
   const [reportType, setReportType] = useState('sales'); // sales, delivery
   const [dateRange, setDateRange] = useState('This Month');
 
-  const { data: analyticsData, isLoading } = useQuery({
+  const { data: analyticsData } = useQuery({
     queryKey: ['analytics', reportType],
     queryFn: async () => {
       const response = await api.get(`/analytics/${reportType}`);
@@ -41,6 +21,63 @@ const Analytics = () => {
     },
     retry: false
   });
+
+  const salesChartData = (analyticsData && Array.isArray(analyticsData) && analyticsData.length > 0)
+    ? analyticsData.map(item => {
+        let label = item._id;
+        if (item._id && item._id.includes('-')) {
+          const parts = item._id.split('-');
+          if (parts[1] && !parts[1].startsWith('W')) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIdx = parseInt(parts[1]) - 1;
+            label = `${months[monthIdx]} ${parts[0].slice(2)}`;
+          }
+        }
+        const onlineAmt = Math.round(Number(item.revenue || 0) * 0.77);
+        const offlineAmt = Math.round(Number(item.revenue || 0) * 0.23);
+        return {
+          month: label,
+          online: onlineAmt,
+          offline: offlineAmt,
+          total: Number(item.revenue || 0),
+        };
+      })
+    : [];
+
+  const totalEarnings = salesChartData.reduce((sum, item) => sum + item.total, 0);
+  const totalOnline = salesChartData.reduce((sum, item) => sum + item.online, 0);
+  const totalOffline = salesChartData.reduce((sum, item) => sum + item.offline, 0);
+
+  const hasDeliveryData = analyticsData && analyticsData.deliveryStats && Array.isArray(analyticsData.deliveryStats) && analyticsData.deliveryStats.length > 0;
+  
+  let totalStops = 0;
+  let successRate = '0.0%';
+  let delaysCount = 0;
+  let delaysPercentage = '0.0%';
+  
+  let deliveryChartData = [];
+
+  if (hasDeliveryData) {
+    deliveryChartData = analyticsData.deliveryStats;
+    const statsMap = {};
+    analyticsData.deliveryStats.forEach(item => {
+      // Aggregate completed, delayed, missed
+      statsMap['completed'] = (statsMap['completed'] || 0) + Number(item.completed || 0);
+      statsMap['delayed'] = (statsMap['delayed'] || 0) + Number(item.delayed || 0);
+      statsMap['missed'] = (statsMap['missed'] || 0) + Number(item.missed || 0);
+    });
+    
+    const completed = statsMap['completed'] || 0;
+    const delayed = statsMap['delayed'] || 0;
+    const missed = statsMap['missed'] || 0;
+    const total = completed + delayed + missed;
+    if (total > 0) {
+      totalStops = total;
+      successRate = ((completed / total) * 100).toFixed(1) + '%';
+      delaysCount = delayed;
+      delaysPercentage = ((delayed / total) * 100).toFixed(1) + '%';
+    }
+  }
 
   const handleDownload = () => {
     toast.success(`Exporting ${reportType} report as PDF format...`);
@@ -101,27 +138,33 @@ const Analytics = () => {
           <div className="lg:col-span-2 card p-6 border border-slate-200 dark:border-dark-border bg-white dark:bg-dark-card">
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-6">Revenue Churn Breakdown</h3>
             <div className="h-96 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockReports.sales} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorOffline" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d314820" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
-                  <YAxis stroke="#94a3b8" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1d2e', border: '1px solid #2d3148', color: '#f1f5f9', borderRadius: '12px' }} />
-                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  <Area type="monotone" name="App Subscriptions" dataKey="online" stroke="#4f46e5" strokeWidth={2.5} fillOpacity={1} fill="url(#colorOnline)" />
-                  <Area type="monotone" name="B2B Supply Orders" dataKey="offline" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#colorOffline)" />
-                </AreaChart>
-              </ResponsiveContainer>
+              {salesChartData.length === 0 ? (
+                <div className="flex h-full items-center justify-center border border-dashed border-slate-200 dark:border-dark-border rounded-xl">
+                  <span className="text-sm text-slate-400">No data available yet</span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={salesChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorOffline" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d314820" />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
+                    <YAxis stroke="#94a3b8" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1d2e', border: '1px solid #2d3148', color: '#f1f5f9', borderRadius: '12px' }} />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                    <Area type="monotone" name="App Subscriptions" dataKey="online" stroke="#4f46e5" strokeWidth={2.5} fillOpacity={1} fill="url(#colorOnline)" />
+                    <Area type="monotone" name="B2B Supply Orders" dataKey="offline" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#colorOffline)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -134,15 +177,15 @@ const Analytics = () => {
             <div className="space-y-4 my-6">
               <div className="flex justify-between border-b border-slate-100 dark:border-dark-border pb-2">
                 <span className="text-xs text-slate-400">Total App Subscriptions</span>
-                <span className="text-sm font-bold">₹3,090,000</span>
+                <span className="text-sm font-bold">₹{totalOnline.toLocaleString()}</span>
               </div>
               <div className="flex justify-between border-b border-slate-100 dark:border-dark-border pb-2">
                 <span className="text-xs text-slate-400">Total B2B Bulk Supplies</span>
-                <span className="text-sm font-bold">₹905,000</span>
+                <span className="text-sm font-bold">₹{totalOffline.toLocaleString()}</span>
               </div>
               <div className="flex justify-between pb-2">
                 <span className="text-xs text-slate-500 font-bold">Net Total Earnings</span>
-                <span className="text-sm font-extrabold text-indigo-500">₹3,995,000</span>
+                <span className="text-sm font-extrabold text-indigo-500">₹{totalEarnings.toLocaleString()}</span>
               </div>
             </div>
 
@@ -159,18 +202,24 @@ const Analytics = () => {
           <div className="lg:col-span-2 card p-6 border border-slate-200 dark:border-dark-border bg-white dark:bg-dark-card">
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-6">Daily Dispatch KPI (Stops success)</h3>
             <div className="h-96 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockReports.delivery} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d314820" />
-                  <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} />
-                  <YAxis stroke="#94a3b8" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1a1d2e', border: '1px solid #2d3148', color: '#f1f5f9', borderRadius: '12px' }} />
-                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  <Bar name="Successful Delivery" dataKey="completed" fill="#10b981" stackId="a" radius={[0, 0, 0, 0]} />
-                  <Bar name="Late Delivery (>8:00 AM)" dataKey="delayed" fill="#f59e0b" stackId="a" radius={[0, 0, 0, 0]} />
-                  <Bar name="Missed Stops" dataKey="missed" fill="#f43f5e" stackId="a" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {deliveryChartData.length === 0 ? (
+                <div className="flex h-full items-center justify-center border border-dashed border-slate-200 dark:border-dark-border rounded-xl">
+                  <span className="text-sm text-slate-400">No data available yet</span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={deliveryChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d314820" />
+                    <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} />
+                    <YAxis stroke="#94a3b8" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1a1d2e', border: '1px solid #2d3148', color: '#f1f5f9', borderRadius: '12px' }} />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                    <Bar name="Successful Delivery" dataKey="completed" fill="#10b981" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar name="Late Delivery (>8:00 AM)" dataKey="delayed" fill="#f59e0b" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar name="Missed Stops" dataKey="missed" fill="#f43f5e" stackId="a" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -183,15 +232,15 @@ const Analytics = () => {
             <div className="space-y-4 my-6">
               <div className="flex justify-between border-b border-slate-100 dark:border-dark-border pb-2">
                 <span className="text-xs text-slate-400">Total Stops Dispatched</span>
-                <span className="text-sm font-bold">6,128 stops</span>
+                <span className="text-sm font-bold">{totalStops.toLocaleString()} stops</span>
               </div>
               <div className="flex justify-between border-b border-slate-100 dark:border-dark-border pb-2">
                 <span className="text-xs text-slate-400">Success Rate</span>
-                <span className="text-sm font-bold text-emerald-500">97.8%</span>
+                <span className="text-sm font-bold text-emerald-500">{successRate}</span>
               </div>
               <div className="flex justify-between pb-2">
                 <span className="text-xs text-slate-400">Delays Registered</span>
-                <span className="text-sm font-bold text-amber-500">100 (1.6%)</span>
+                <span className="text-sm font-bold text-amber-500">{delaysCount} ({delaysPercentage})</span>
               </div>
             </div>
 

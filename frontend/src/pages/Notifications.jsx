@@ -51,7 +51,10 @@ const Notifications = () => {
   };
 
   const columns = [
-    { label: 'Roster Date', key: 'createdAt', render: (row) => <span>{new Date(row.createdAt).toLocaleDateString()}</span> },
+    { label: 'Roster Date', key: 'createdAt', render: (row) => {
+      const d = row.createdAt ? new Date(row.createdAt) : null;
+      return <span>{d && !isNaN(d.getTime()) ? d.toLocaleDateString() : '-'}</span>;
+    } },
     { label: 'Notification Alert Message', key: 'message', render: (row) => (
       <span className={!row.read ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}>
         {row.message}

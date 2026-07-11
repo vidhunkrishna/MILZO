@@ -38,7 +38,7 @@ const Header = () => {
         
         {/* Breadcrumbs or Status text */}
         <span className="hidden sm:inline text-xs font-semibold px-3 py-1 bg-slate-100 dark:bg-dark-hover border border-slate-200/50 dark:border-dark-border/50 text-slate-500 dark:text-slate-400 rounded-full">
-          Admin Portal Mode
+          {user?.role === 'customer' ? 'Customer Portal Mode' : 'Admin Portal Mode'}
         </span>
       </div>
 
@@ -86,7 +86,7 @@ const Header = () => {
               >
                 <div className="px-3 py-2 border-b border-slate-100 dark:border-dark-border flex justify-between items-center">
                   <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">Alert Notifications</span>
-                  <Link to="/notifications" onClick={() => setNotifOpen(false)} className="text-xs text-primary-500 hover:underline">View All</Link>
+                  <Link to={user?.role === 'customer' ? "/customer/notifications" : "/notifications"} onClick={() => setNotifOpen(false)} className="text-xs text-primary-500 hover:underline">View All</Link>
                 </div>
                 <div className="max-h-64 overflow-y-auto py-1">
                   {notifications.length === 0 ? (
@@ -104,7 +104,10 @@ const Header = () => {
                       >
                         <p className="line-clamp-2">{notif.message}</p>
                         <span className="text-[10px] text-slate-400 block mt-1">
-                          {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {(() => {
+                            const d = notif.createdAt ? new Date(notif.createdAt) : null;
+                            return d && !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+                          })()}
                         </span>
                       </motion.div>
                     ))
@@ -165,7 +168,7 @@ const Header = () => {
                   transition={{ delay: 0.05 }}
                 >
                   <Link
-                    to="/settings"
+                    to={user?.role === 'customer' ? "/customer/profile" : "/settings"}
                     onClick={() => setProfileOpen(false)}
                     className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-dark-hover hover:text-slate-900 dark:hover:text-slate-200 rounded-xl transition-colors"
                   >

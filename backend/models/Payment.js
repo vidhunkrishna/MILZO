@@ -4,7 +4,11 @@ const TABLE = 'payments';
 
 const addIdAlias = (row) => {
   if (!row) return null;
-  return { ...row, _id: row.id };
+  const mapped = { ...row, _id: row.id };
+  if (mapped.method === 'wallet' && mapped.type === 'subscription_payment') {
+    mapped.type = 'wallet_recharge';
+  }
+  return mapped;
 };
 const addIdAliasArray = (rows) => (rows || []).map(addIdAlias);
 
@@ -27,7 +31,7 @@ const Payment = {
       currency: body.currency || 'INR',
       method: body.method,
       status: body.status || 'pending',
-      type: body.type,
+      type: body.type === 'wallet_recharge' ? 'subscription_payment' : body.type,
       vendor: body.vendor,
       agent: body.agent,
       notes: body.notes,

@@ -10,18 +10,59 @@ const addIdAlias = (row) => {
 };
 const addIdAliasArray = (rows) => (rows || []).map(addIdAlias);
 
+const parsePaymentField = (row) => {
+  if (!row) return null;
+  let payment = {
+    method: 'Unknown',
+    status: 'Unknown',
+    transactionId: 'N/A',
+    paidAt: null
+  };
+
+  const txId = row.transaction_id;
+  if (txId && txId.trim().startsWith('{') && txId.trim().endsWith('}')) {
+    try {
+      const parsed = JSON.parse(txId);
+      payment.method = parsed.method || 'Unknown';
+      payment.status = parsed.status || 'Unknown';
+      payment.transactionId = parsed.transactionId || 'N/A';
+      payment.paidAt = parsed.paidAt || null;
+    } catch (e) {
+      // If parsing failed, keep defaults
+    }
+  }
+  return payment;
+};
+
 const Order = {
   async findById(id) {
     const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).is('deleted_at', null).single();
     if (error) return null;
-    // Fetch items and timeline
+    // Fetch items, timeline, and agent details
     const [itemsRes, timelineRes] = await Promise.all([
-      supabase.from(ITEMS_TABLE).select('*').eq('order_id', id),
+      supabase.from(ITEMS_TABLE).select('*, product_details:products(name)').eq('order_id', id),
       supabase.from(TIMELINE_TABLE).select('*').eq('order_id', id).order('timestamp', { ascending: true }),
     ]);
+
     const order = addIdAlias(data);
-    order.items = addIdAliasArray(itemsRes.data);
+    order.items = (itemsRes.data || []).map(item => ({
+      ...item,
+      _id: item.id,
+      product_name: item.product_details?.name || "Unknown Product",
+    }));
     order.timeline = addIdAliasArray(timelineRes.data);
+
+    if (order.delivery_agent) {
+      const { data: agent } = await supabase
+        .from('delivery_agents')
+        .select('name, phone')
+        .eq('id', order.delivery_agent)
+        .single();
+      order.delivery_agent_details = agent || null;
+    } else {
+      order.delivery_agent_details = null;
+    }
+
     // Build pricing object for backward compat
     order.pricing = {
       subtotal: order.subtotal,
@@ -30,10 +71,43 @@ const Order = {
       discount: order.discount,
       total: order.total,
     };
+
+    // Parse transaction_id column to get payment details (prevents schema errors)
+    order.payment = parsePaymentField(data);
+    
+    // Maintain backward compatibility for raw transaction_id attribute
+    order.transaction_id = order.payment.transactionId;
+
     return order;
   },
 
   async create(body) {
+    // Set payment fields and defaults
+    const method = body.payment?.method || 'cod';
+    let status = body.payment?.status;
+    let transactionId = body.payment?.transactionId;
+    let paidAt = body.payment?.paidAt;
+
+    if (method === 'cod') {
+      if (!status) status = 'pending';
+      if (!transactionId) transactionId = 'N/A';
+    } else if (method === 'wallet') {
+      if (!status) status = 'paid';
+      if (!transactionId) transactionId = 'N/A';
+      if (!paidAt) paidAt = new Date().toISOString();
+    } else if (method === 'razorpay') {
+      if (!status) status = 'captured';
+      if (!transactionId) transactionId = 'N/A';
+      if (!paidAt) paidAt = new Date().toISOString();
+    }
+
+    const payment = {
+      method,
+      status,
+      transactionId,
+      paidAt,
+    };
+
     const record = {
       customer: body.customer,
       vendor: body.vendor,
@@ -48,9 +122,9 @@ const Order = {
       delivery_charge: body.pricing?.deliveryCharge || 0,
       discount: body.pricing?.discount || 0,
       total: body.pricing?.total || 0,
-      payment_method: body.payment?.method,
-      payment_status: body.payment?.status || 'pending',
-      transaction_id: body.payment?.transactionId,
+      payment_method: payment.method === 'cod' ? 'cod' : payment.method === 'wallet' ? 'wallet' : 'online',
+      payment_status: payment.status === 'paid' || payment.status === 'captured' ? 'captured' : payment.status === 'failed' ? 'failed' : 'pending',
+      transaction_id: JSON.stringify(payment), // Store entire payment payload in the transaction_id column
       subscription: body.subscription,
       notes: body.notes,
       is_subscription_order: body.isSubscriptionOrder || false,
@@ -101,6 +175,9 @@ const Order = {
     if (body.cancel_reason !== undefined) updates.cancel_reason = body.cancel_reason;
     if (body.rating !== undefined) updates.rating = body.rating;
     if (body.deletedAt !== undefined) updates.deleted_at = body.deletedAt;
+    if (body.payment_method !== undefined) updates.payment_method = body.payment_method;
+    if (body.payment_status !== undefined) updates.payment_status = body.payment_status;
+    if (body.transaction_id !== undefined) updates.transaction_id = body.transaction_id;
 
     const { data, error } = await supabase.from(TABLE).update(updates).eq('id', id).is('deleted_at', null).select().single();
     if (error && error.code === 'PGRST116') return null;

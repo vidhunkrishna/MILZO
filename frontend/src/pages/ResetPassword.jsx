@@ -1,37 +1,37 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
-import { Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import api from '../services/api';
+import React, { useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import api from "../services/api";
 
 const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!password || !confirmPassword) {
-      return toast.error('Please enter all password fields');
+      return toast.error("Please enter all password fields");
     }
     if (password !== confirmPassword) {
-      return toast.error('Passwords do not match');
+      return toast.error("Passwords do not match");
     }
     if (password.length < 6) {
-      return toast.error('Password must be at least 6 characters long');
+      return toast.error("Password must be at least 6 characters long");
     }
 
     try {
       setLoading(true);
-      await api.post(`/auth/reset-password/${token}`, { password });
-      toast.success('Password updated successfully! Please sign in.');
-      navigate('/login');
+      await api.put(`/auth/reset-password/${token}`, { password });
+      toast.success("Password updated successfully! Please sign in.");
+      navigate("/login");
     } catch (err) {
-      toast.error(err.message || 'Token is invalid or has expired.');
+      toast.error(err.message || "Token is invalid or has expired.");
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ const ResetPassword = () => {
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
           <input
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
@@ -68,7 +68,11 @@ const ResetPassword = () => {
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>
@@ -81,7 +85,7 @@ const ResetPassword = () => {
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
           <input
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="••••••••"
@@ -102,7 +106,7 @@ const ResetPassword = () => {
             Resetting password...
           </>
         ) : (
-          'Update Password'
+          "Update Password"
         )}
       </button>
 

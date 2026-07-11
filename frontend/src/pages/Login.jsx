@@ -32,7 +32,11 @@ const Login = () => {
       dispatch(loginSuccess({ user, token }));
       
       toast.success(`Welcome back, ${user.name}!`);
-      navigate('/dashboard');
+      if (user.role === 'customer') {
+        navigate('/customer/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       const errMsg = err.message || 'Login failed. Please check your credentials.';
       dispatch(loginFailure(errMsg));
@@ -53,7 +57,7 @@ const Login = () => {
           Welcome Back
         </h3>
         <p className="text-xs text-slate-400 mt-1">
-          Access the MILZO admin dashboard portal
+          Access the MILZO dashboard portal
         </p>
       </motion.div>
 
@@ -137,6 +141,16 @@ const Login = () => {
             'Sign In'
           )}
         </motion.button>
+      </motion.div>
+
+      <motion.div className="text-center mt-4" variants={staggerChild}>
+        <span className="text-xs text-slate-400">Need a customer account? </span>
+        <Link
+          to="/register"
+          className="text-xs text-blue-400 hover:text-blue-300 hover:underline font-semibold"
+        >
+          Create Customer Account
+        </Link>
       </motion.div>
     </motion.form>
   );

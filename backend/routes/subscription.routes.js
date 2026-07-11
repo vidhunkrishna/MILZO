@@ -6,12 +6,12 @@ const { authorize } = require('../middleware/rbac');
 
 router.use(protect);
 router.get('/', getSubscriptions);
-router.post('/', authorize('superAdmin', 'operationsManager', 'customerSupport'), createSubscription);
+router.post('/', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), createSubscription);
 router.get('/:id', getSubscription);
-router.put('/:id', authorize('superAdmin', 'operationsManager'), updateSubscription);
-router.delete('/:id', authorize('superAdmin'), deleteSubscription);
-router.patch('/:id/pause', authorize('superAdmin', 'operationsManager', 'customerSupport'), pauseSubscription);
-router.patch('/:id/resume', authorize('superAdmin', 'operationsManager', 'customerSupport'), resumeSubscription);
-router.patch('/:id/cancel', authorize('superAdmin', 'operationsManager', 'customerSupport'), cancelSubscription);
+router.put('/:id', authorize('superAdmin', 'operationsManager', 'customer'), updateSubscription);
+router.delete('/:id', authorize('superAdmin', 'customer'), deleteSubscription);
+router.patch('/:id/pause', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), pauseSubscription);
+router.patch('/:id/resume', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), resumeSubscription);
+router.patch('/:id/cancel', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), cancelSubscription);
 
 module.exports = router;

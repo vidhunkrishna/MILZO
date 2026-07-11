@@ -42,8 +42,17 @@ const getAuditLogs = async (req, res) => {
   if (action) filter.action = action;
   if (userId) filter.user = userId;
   const result = await AuditLog.findAll(filter, { page, limit, sortBy, sortOrder });
+  
+  const formattedLogs = (result.data || []).map(row => ({
+    ...row,
+    timestamp: row.created_at ? new Date(row.created_at).toLocaleString() : '',
+    user: row.user_name || row.user || 'System',
+    details: row.description || '',
+    ipAddress: row.ip_address || '',
+  }));
+
   const totalPages = Math.ceil((result.count || 0) / parseInt(limit));
-  return ApiResponse.paginated(res, result.data, {
+  return ApiResponse.paginated(res, formattedLogs, {
     page: parseInt(page), limit: parseInt(limit), total: result.count || 0, totalPages,
     hasNext: parseInt(page) < totalPages, hasPrev: parseInt(page) > 1,
   });
@@ -56,8 +65,16 @@ const getErrorLogs = async (req, res) => {
   if (level) filter.level = level;
   if (resolved !== undefined) filter.resolved = resolved === 'true';
   const result = await ErrorLog.findAll(filter, { page, limit });
+
+  const formattedLogs = (result.data || []).map(row => ({
+    ...row,
+    path: row.endpoint || '',
+    timestamp: row.created_at ? new Date(row.created_at).toLocaleString() : '',
+    status: row.resolved ? 'Resolved' : 'Open',
+  }));
+
   const totalPages = Math.ceil((result.count || 0) / parseInt(limit));
-  return ApiResponse.paginated(res, result.data, {
+  return ApiResponse.paginated(res, formattedLogs, {
     page: parseInt(page), limit: parseInt(limit), total: result.count || 0, totalPages,
     hasNext: parseInt(page) < totalPages, hasPrev: parseInt(page) > 1,
   });
@@ -80,7 +97,7 @@ const getSettings = async (req, res) => {
 };
 
 const updateSettings = async (req, res) => {
-  const { settings } = req.body;
+  const settings = req.body.settings || req.body;
   const updates = await Promise.all(
     Object.entries(settings).map(([key, value]) =>
       Settings.upsert(key, value, req.user._id)

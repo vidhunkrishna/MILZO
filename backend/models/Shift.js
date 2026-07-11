@@ -7,7 +7,13 @@ const LEAVE_TABLE = 'shift_leave_requests';
 
 const addIdAlias = (row) => {
   if (!row) return null;
-  return { ...row, _id: row.id };
+  return { 
+    ...row, 
+    _id: row.id,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    activeAgentsCount: row.assignedAgents?.length || 0,
+  };
 };
 const addIdAliasArray = (rows) => (rows || []).map(addIdAlias);
 
@@ -30,12 +36,12 @@ const Shift = {
   async create(body) {
     const record = {
       name: body.name,
-      type: body.type,
-      start_time: body.startTime,
-      end_time: body.endTime,
-      date: body.date,
+      type: body.type || (body.name.toLowerCase().includes('morning') ? 'morning' : body.name.toLowerCase().includes('evening') ? 'evening' : 'custom'),
+      start_time: body.startTime || '04:00 AM',
+      end_time: body.endTime || '08:00 AM',
+      date: body.date || new Date().toISOString().split('T')[0],
       routes: body.routes || [],
-      status: body.status || 'scheduled',
+      status: (body.status || 'scheduled').toLowerCase(),
       notes: body.notes,
     };
     const { data, error } = await supabase.from(TABLE).insert(record).select().single();
@@ -62,7 +68,7 @@ const Shift = {
     if (body.endTime !== undefined) updates.end_time = body.endTime;
     if (body.date !== undefined) updates.date = body.date;
     if (body.routes !== undefined) updates.routes = body.routes;
-    if (body.status !== undefined) updates.status = body.status;
+    if (body.status !== undefined) updates.status = body.status.toLowerCase();
     if (body.notes !== undefined) updates.notes = body.notes;
     if (body.deletedAt !== undefined) updates.deleted_at = body.deletedAt;
 

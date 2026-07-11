@@ -60,7 +60,7 @@ const DataTable = ({
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
               {loading ? (
                 <tr key="loading">
                   <td colSpan={columns.length + (actions ? 1 : 0)} className="py-20 text-center">

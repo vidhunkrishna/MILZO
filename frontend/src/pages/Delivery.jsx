@@ -44,8 +44,8 @@ const Delivery = () => {
   const listData = routeData || mockRoutes;
 
   const filteredData = listData.filter(r =>
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.agentName.toLowerCase().includes(search.toLowerCase())
+    (r.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (r.agentName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const openAddModal = () => {

@@ -4,12 +4,38 @@ import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
-import AIChatWidget from '../components/AIChatWidget';
 import { pageTransition } from '../lib/animations';
+
+const getAdminPageTitle = (pathname) => {
+  switch (pathname) {
+    case '/dashboard': return 'Dashboard';
+    case '/customers': return 'Customers';
+    case '/orders': return 'Orders';
+    case '/delivery': return 'Delivery';
+    case '/delivery/agents': return 'Delivery Agents';
+    case '/shifts': return 'Shifts & Attendance';
+    case '/vendors': return 'Vendors';
+    case '/products': return 'Products';
+    case '/subscriptions': return 'Subscriptions';
+    case '/bookings': return 'Bookings';
+    case '/payments': return 'Payments & Invoices';
+    case '/feedback': return 'Feedback & Tickets';
+    case '/analytics': return 'Reports & Analytics';
+    case '/logs': return 'Audit & Error Logs';
+    case '/notifications': return 'Notifications';
+    case '/settings': return 'Settings';
+    default: return '';
+  }
+};
 
 const AdminLayout = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
   const location = useLocation();
+
+  React.useEffect(() => {
+    const pageTitle = getAdminPageTitle(location.pathname);
+    document.title = pageTitle ? `MILZO Admin Panel | ${pageTitle}` : `MILZO Admin Panel`;
+  }, [location.pathname]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -36,9 +62,6 @@ const AdminLayout = () => {
             <Outlet />
           </motion.main>
         </AnimatePresence>
-        
-        {/* Floating AI chatbot support assistant */}
-        <AIChatWidget />
       </div>
     </div>
   );

@@ -356,6 +356,7 @@ CREATE TABLE orders (
   payment_method payment_intent,
   payment_status payment_status DEFAULT 'pending',
   transaction_id TEXT,
+  payment JSONB DEFAULT '{}',
   subscription UUID REFERENCES subscriptions(id),
   notes TEXT,
   cancel_reason TEXT,

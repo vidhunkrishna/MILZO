@@ -107,13 +107,13 @@ const Logs = () => {
       {activeTab === 'audit' ? (
         <DataTable
           columns={auditColumns}
-          data={mockAuditLogs}
+          data={logsData || mockAuditLogs}
           searchPlaceholder="Search audit trails by action..."
         />
       ) : (
         <DataTable
           columns={errorColumns}
-          data={mockErrorLogs}
+          data={logsData || mockErrorLogs}
           searchPlaceholder="Search server errors..."
         />
       )}

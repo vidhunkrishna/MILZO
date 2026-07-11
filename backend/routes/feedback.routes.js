@@ -11,6 +11,9 @@ router.get('/:id', getFeedback);
 router.put('/:id', updateFeedback);
 router.delete('/:id', authorize('superAdmin'), deleteFeedback);
 router.patch('/:id/resolve', resolveFeedback);
+router.put('/:id/resolve', resolveFeedback);
+router.put('/resolve/:id', resolveFeedback);
+router.patch('/resolve/:id', resolveFeedback);
 router.patch('/:id/escalate', authorize('superAdmin', 'operationsManager'), escalateFeedback);
 router.post('/:id/comments', addComment);
 

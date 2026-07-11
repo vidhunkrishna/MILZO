@@ -40,14 +40,14 @@ const Settings = () => {
     queryKey: ['settings'],
     queryFn: async () => {
       const response = await api.get('/settings');
-      const data = response.data.data;
-      setBizName(data.businessName);
-      setBizEmail(data.email);
-      setBizPhone(data.phone);
-      setBizAddress(data.supportAddress);
-      setCutoff(data.deliveryCutoffHour);
-      setMinBalance(data.minWalletBalance);
-      setRzpKey(data.razorpayKey);
+      const data = response.data.data?.formatted || {};
+      setBizName(data.businessName || '');
+      setBizEmail(data.email || '');
+      setBizPhone(data.phone || '');
+      setBizAddress(data.supportAddress || '');
+      setCutoff(data.deliveryCutoffHour || '');
+      setMinBalance(data.minWalletBalance || '');
+      setRzpKey(data.razorpayKey || '');
       return data;
     },
     retry: false

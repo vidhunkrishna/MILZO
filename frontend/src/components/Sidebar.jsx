@@ -15,8 +15,41 @@ import { fadeIn, slideInLeft, gentleSpring, staggerContainer, staggerChildLeft }
 const Sidebar = () => {
   const dispatch = useDispatch();
   const sidebarOpen = useSelector((state) => state.ui.sidebarOpen);
+  const { user } = useSelector((state) => state.auth);
 
-  const menuGroups = [
+  const menuGroups = user?.role === 'customer' ? [
+    {
+      title: 'Core',
+      items: [
+        { name: 'Dashboard', path: '/customer/dashboard', icon: LayoutDashboard },
+        { name: 'Products Catalog', path: '/customer/products', icon: Package },
+        { name: 'Shopping Cart', path: '/customer/cart', icon: ShoppingBag },
+      ]
+    },
+    {
+      title: 'Schedules',
+      items: [
+        { name: 'My Orders', path: '/customer/orders', icon: Clock },
+        { name: 'My Subscriptions', path: '/customer/subscriptions', icon: RefreshCw },
+        { name: 'My Bookings', path: '/customer/bookings', icon: CalendarCheck },
+      ]
+    },
+    {
+      title: 'Tracking & Wallet',
+      items: [
+        { name: 'Delivery Tracking', path: '/customer/tracking', icon: Map },
+        { name: 'Payments & Wallet', path: '/customer/payments', icon: CreditCard },
+      ]
+    },
+    {
+      title: 'Account',
+      items: [
+        { name: 'Support Tickets', path: '/customer/feedback', icon: MessageSquare },
+        { name: 'Notifications', path: '/customer/notifications', icon: Bell },
+        { name: 'Profile Settings', path: '/customer/profile', icon: Settings },
+      ]
+    }
+  ] : [
     {
       title: 'Core',
       items: [
@@ -84,7 +117,7 @@ const Sidebar = () => {
       >
         {/* Brand Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-          <Link to="/dashboard" className="flex items-center gap-2.5">
+          <Link to={user?.role === 'customer' ? "/customer/dashboard" : "/dashboard"} className="flex items-center gap-2.5">
             <Logo size={32} />
             <span className="text-xl font-bold font-display text-white tracking-wider">
               MILZO

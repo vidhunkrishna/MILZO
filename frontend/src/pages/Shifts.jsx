@@ -30,6 +30,9 @@ const Shifts = () => {
   const [formStart, setFormStart] = useState('04:00 AM');
   const [formEnd, setFormEnd] = useState('08:00 AM');
 
+  // Live Attendance State
+  const [attendanceList, setAttendanceList] = useState(mockAttendance);
+
   // Fetch shifts
   const { data: shiftData, isLoading } = useQuery({
     queryKey: ['shifts'],
@@ -69,8 +72,14 @@ const Shifts = () => {
     try {
       await api.post(`/shifts/attendance/${id}`, { status });
       toast.success(`Marked attendance as ${status}!`);
+      setAttendanceList(prev => prev.map(item => 
+        item._id === id ? { ...item, status } : item
+      ));
     } catch (err) {
       toast.success(`Marked attendance as ${status} (Mock)!`);
+      setAttendanceList(prev => prev.map(item => 
+        item._id === id ? { ...item, status } : item
+      ));
     }
   };
 
@@ -156,7 +165,7 @@ const Shifts = () => {
       ) : (
         <DataTable
           columns={attendanceColumns}
-          data={mockAttendance}
+          data={attendanceList}
           searchPlaceholder="Search agent attendance logs..."
         />
       )}

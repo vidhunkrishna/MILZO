@@ -9,7 +9,7 @@ router.get('/export', exportCustomers);
 router.get('/', getCustomers);
 router.post('/', authorize('superAdmin', 'operationsManager', 'customerSupport'), createCustomer);
 router.get('/:id', getCustomer);
-router.put('/:id', authorize('superAdmin', 'operationsManager', 'customerSupport'), updateCustomer);
+router.put('/:id', authorize('superAdmin', 'operationsManager', 'customerSupport', 'customer'), updateCustomer);
 router.delete('/:id', authorize('superAdmin'), deleteCustomer);
 router.patch('/:id/status', authorize('superAdmin', 'operationsManager', 'customerSupport'), updateCustomerStatus);
 router.get('/:id/history', getCustomerHistory);

@@ -1,13 +1,15 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 // Layouts
 import AdminLayout from './layouts/AdminLayout';
+import CustomerLayout from './layouts/CustomerLayout';
 import AuthLayout from './layouts/AuthLayout';
 
 // Guest / Auth Pages
-import Landing from './pages/Landing';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
@@ -15,6 +17,7 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
 import Orders from './pages/Orders';
+
 import Delivery from './pages/Delivery';
 import Agents from './pages/Agents';
 import Shifts from './pages/Shifts';
@@ -29,16 +32,36 @@ import Logs from './pages/Logs';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 
+// Authenticated Customer Pages
+import CustomerDashboard from './pages/CustomerDashboard';
+import CustomerProducts from './pages/CustomerProducts';
+import CustomerCart from './pages/CustomerCart';
+import CustomerOrders from './pages/CustomerOrders';
+import CustomerSubscriptions from './pages/CustomerSubscriptions';
+import CustomerBookings from './pages/CustomerBookings';
+import CustomerTracking from './pages/CustomerTracking';
+import CustomerPayments from './pages/CustomerPayments';
+import CustomerProfile from './pages/CustomerProfile';
+import CustomerSupport from './pages/CustomerSupport';
+
+// Helper Redirect component for role-based fallback routing
+const DashboardRedirect = () => {
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <Navigate to={user?.role === 'customer' ? "/customer/dashboard" : "/dashboard"} replace />;
+};
+
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        {/* Public Landing Page */}
-        <Route path="/" element={<Landing />} />
+        {/* Root entry point redirects based on auth/role */}
+        <Route path="/" element={<DashboardRedirect />} />
 
         {/* Auth Guest Route wrapper */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
         </Route>
@@ -63,8 +86,23 @@ function App() {
           <Route path="/settings" element={<Settings />} />
         </Route>
 
+        {/* Authenticated Customer Dashboard Roster */}
+        <Route element={<CustomerLayout />}>
+          <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+          <Route path="/customer/products" element={<CustomerProducts />} />
+          <Route path="/customer/cart" element={<CustomerCart />} />
+          <Route path="/customer/orders" element={<CustomerOrders />} />
+          <Route path="/customer/subscriptions" element={<CustomerSubscriptions />} />
+          <Route path="/customer/bookings" element={<CustomerBookings />} />
+          <Route path="/customer/tracking" element={<CustomerTracking />} />
+          <Route path="/customer/payments" element={<CustomerPayments />} />
+          <Route path="/customer/profile" element={<CustomerProfile />} />
+          <Route path="/customer/feedback" element={<CustomerSupport />} />
+          <Route path="/customer/notifications" element={<Notifications />} />
+        </Route>
+
         {/* Catch-all fallback redirect */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<DashboardRedirect />} />
       </Routes>
     </BrowserRouter>
   );

@@ -31,6 +31,11 @@ const getCustomers = async (req, res) => {
 // @route   GET /api/customers/:id
 // @access  Private
 const getCustomer = async (req, res) => {
+  const userId = req.user.id || req.user._id;
+  if (req.user.role === 'customer' && req.params.id !== userId) {
+    return ApiResponse.forbidden(res, 'You are not authorized to view this customer details');
+  }
+
   const customer = await Customer.findById(req.params.id);
   if (!customer) return ApiResponse.notFound(res, 'Customer not found');
   return ApiResponse.success(res, customer);
@@ -43,9 +48,15 @@ const createCustomer = async (req, res) => {
   const customer = await Customer.create(req.body);
 
   await AuditLog.create({
-    user: req.user._id, userName: req.user.name, userRole: req.user.role,
-    action: 'CREATE', module: 'Customer', entityType: 'Customer', entityId: customer._id,
-    description: `Created customer ${customer.name}`, ipAddress: req.ip,
+    user: req.user._id || req.user.id,
+    userName: req.user.name,
+    userRole: req.user.role,
+    action: 'CREATE',
+    module: 'Customer',
+    entityType: 'Customer',
+    entityId: customer._id || customer.id,
+    description: `Created customer ${customer.name}`,
+    ipAddress: req.ip,
   });
 
   return ApiResponse.created(res, customer, 'Customer created successfully');
@@ -55,13 +66,42 @@ const createCustomer = async (req, res) => {
 // @route   PUT /api/customers/:id
 // @access  Private
 const updateCustomer = async (req, res) => {
-  const customer = await Customer.update(req.params.id, req.body);
+  const userId = req.user.id || req.user._id;
+  const isCustomer = req.user.role === 'customer';
+  const targetId = isCustomer ? userId : req.params.id;
+
+  if (isCustomer) {
+    // Filter parameters for security
+    const allowedKeys = ['name', 'phone', 'alternatePhone', 'address', 'preferences', 'notes'];
+    const filteredBody = {};
+    allowedKeys.forEach(k => {
+      if (req.body[k] !== undefined) filteredBody[k] = req.body[k];
+    });
+    req.body = filteredBody;
+  }
+
+  const customer = await Customer.update(targetId, req.body);
   if (!customer) return ApiResponse.notFound(res, 'Customer not found');
 
+  // Synchronize users table credentials
+  if (req.body.name || req.body.phone) {
+    const User = require('../models/User');
+    await User.updateById(targetId, {
+      name: req.body.name,
+      phone: req.body.phone
+    });
+  }
+
   await AuditLog.create({
-    user: req.user._id, userName: req.user.name, userRole: req.user.role,
-    action: 'UPDATE', module: 'Customer', entityType: 'Customer', entityId: customer._id,
-    description: `Updated customer ${customer.name}`, ipAddress: req.ip,
+    user: req.user._id || req.user.id,
+    userName: req.user.name,
+    userRole: req.user.role,
+    action: 'UPDATE',
+    module: 'Customer',
+    entityType: 'Customer',
+    entityId: customer._id || customer.id,
+    description: `Updated customer profile ${customer.name}`,
+    ipAddress: req.ip,
   });
 
   return ApiResponse.success(res, customer, 'Customer updated successfully');

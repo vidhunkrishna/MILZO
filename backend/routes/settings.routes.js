@@ -7,5 +7,6 @@ const { authorize } = require('../middleware/rbac');
 router.use(protect);
 router.get('/', getSettings);
 router.put('/', authorize('superAdmin'), updateSettings);
+router.put('/gateway', authorize('superAdmin'), updateSettings);
 
 module.exports = router;

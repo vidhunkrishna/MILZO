@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const User = require('../models/User');
+const Customer = require('../models/Customer');
 const AuditLog = require('../models/AuditLog');
 const { generateTokens } = require('../middleware/auth');
 const ApiResponse = require('../utils/apiResponse');
@@ -75,7 +76,16 @@ const logout = async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 const getMe = async (req, res) => {
-  return ApiResponse.success(res, req.user);
+  const user = req.user;
+  const responseData = { ...user };
+
+  if (user.role === 'customer') {
+    const Customer = require('../models/Customer');
+    const customerProfile = await Customer.findById(user.id);
+    responseData.customerProfile = customerProfile;
+  }
+
+  return ApiResponse.success(res, responseData);
 };
 
 // @desc    Forgot Password
@@ -189,4 +199,98 @@ const refreshToken = async (req, res) => {
   }
 };
 
-module.exports = { login, logout, getMe, forgotPassword, resetPassword, changePassword, refreshToken };
+// @desc    Register new customer
+// @route   POST /api/auth/register
+// @access  Public
+const register = async (req, res) => {
+  const { name, email, password, phone, address } = req.body;
+
+  if (!name || !email || !password || !phone || !address || !address.line1 || !address.city || !address.state || !address.pincode) {
+    return ApiResponse.error(res, 'All registration fields are required (name, email, password, phone, address details)', 400);
+  }
+
+  // Check if user already exists in users table
+  const existingUser = await User.findByEmail(email);
+  if (existingUser) {
+    return ApiResponse.error(res, 'User email is already registered', 400);
+  }
+
+  // Check if customer phone is already registered
+  const supabase = require('../config/supabase');
+  const { data: existingCust } = await supabase.from('customers').select('id').eq('phone', phone).limit(1);
+  if (existingCust && existingCust.length > 0) {
+    return ApiResponse.error(res, 'Phone number is already registered', 400);
+  }
+
+  // Step 1: Create user in users table with role 'customer'
+  let user;
+  try {
+    user = await User.create({
+      name,
+      email,
+      password,
+      role: 'customer',
+      phone,
+      isActive: true,
+    });
+  } catch (err) {
+    logger.error(`Error creating user record: ${err.message}`);
+    return ApiResponse.error(res, `Failed to register user: ${err.message}`, 500);
+  }
+
+  // Step 2: Create customer record with matching UUID id
+  try {
+    await Customer.create({
+      id: user.id,
+      name,
+      email,
+      phone,
+      address,
+      wallet: { balance: 0 },
+      status: 'active',
+    });
+  } catch (err) {
+    // Rollback user creation to maintain consistency
+    logger.error(`Error creating customer profile, rolling back user ${user.id}: ${err.message}`);
+    await supabase.from('users').delete().eq('id', user.id);
+    return ApiResponse.error(res, `Failed to create customer profile: ${err.message}`, 500);
+  }
+
+  // Step 3: Generate tokens
+  const { accessToken, refreshToken } = generateTokens(user.id);
+
+  // Update refresh token in users table
+  await User.updateById(user.id, { refreshToken });
+
+  await AuditLog.create({
+    user: user.id,
+    userName: user.name,
+    userRole: 'customer',
+    action: 'REGISTER',
+    module: 'Auth',
+    description: `Customer ${user.name} registered and profile created`,
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent'],
+  });
+
+  res.cookie('token', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  return ApiResponse.success(res, {
+    user: {
+      id: user.id,
+      _id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      lastLogin: user.last_login,
+    },
+    accessToken,
+    refreshToken,
+  }, 'Registration successful');
+};
+
+module.exports = { login, register, logout, getMe, forgotPassword, resetPassword, changePassword, refreshToken };

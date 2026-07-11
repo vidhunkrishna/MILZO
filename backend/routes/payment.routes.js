@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getPayments, getPayment, createRazorpayOrder, verifyRazorpayPayment, processRefund, generateInvoice, getRevenueSummary } = require('../controllers/payment.controller');
+const { getPayments, getPayment, createRazorpayOrder, verifyRazorpayPayment, processRefund, generateInvoice, getRevenueSummary, getWalletTransactions } = require('../controllers/payment.controller');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
 
 router.use(protect);
 router.get('/revenue-summary', getRevenueSummary);
+router.get('/wallet/transactions', getWalletTransactions);
 router.get('/', getPayments);
 router.get('/:id', getPayment);
 router.post('/razorpay/create-order', createRazorpayOrder);

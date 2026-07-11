@@ -9,13 +9,29 @@ const getShifts = async (req, res) => {
   if (status) filter.status = status;
   if (date) {
     const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    const next = new Date(d);
-    next.setDate(next.getDate() + 1);
-    filter.date = { $gte: d.toISOString().split('T')[0], $lt: next.toISOString().split('T')[0] };
+    if (!isNaN(d.getTime())) {
+      d.setHours(0, 0, 0, 0);
+      const next = new Date(d);
+      next.setDate(next.getDate() + 1);
+      filter.date = { $gte: d.toISOString().split('T')[0], $lt: next.toISOString().split('T')[0] };
+    }
   }
   const result = await paginate('shifts', filter, { page, limit, sortBy: 'date', sortOrder: 'desc' });
-  return ApiResponse.paginated(res, result.data, result.pagination);
+  
+  // Resolve activeAgentsCount for each shift
+  const supabase = require('../config/supabase');
+  const formattedShifts = await Promise.all(result.data.map(async (shift) => {
+    const { count } = await supabase
+      .from('shift_agents')
+      .select('*', { count: 'exact', head: true })
+      .eq('shift_id', shift.id);
+    return {
+      ...shift,
+      activeAgentsCount: count || 0
+    };
+  }));
+
+  return ApiResponse.paginated(res, formattedShifts, result.pagination);
 };
 
 const getShift = async (req, res) => {
@@ -63,4 +79,25 @@ const handleLeaveRequest = async (req, res) => {
   return ApiResponse.success(res, updated, 'Leave request updated');
 };
 
-module.exports = { getShifts, getShift, createShift, updateShift, deleteShift, markAttendance, handleLeaveRequest };
+const markMockAttendance = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    const supabase = require('../config/supabase');
+    const { data, error } = await supabase
+      .from('shift_attendance')
+      .update({ present: status === 'Present' })
+      .eq('id', id)
+      .select();
+    if (error) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+    return ApiResponse.success(res, data[0], 'Attendance marked');
+  } else {
+    return ApiResponse.success(res, { id, status }, 'Attendance marked (Mock)');
+  }
+};
+
+module.exports = { getShifts, getShift, createShift, updateShift, deleteShift, markAttendance, handleLeaveRequest, markMockAttendance };
